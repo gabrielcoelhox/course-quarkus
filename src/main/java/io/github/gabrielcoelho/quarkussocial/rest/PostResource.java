@@ -2,6 +2,7 @@ package io.github.gabrielcoelho.quarkussocial.rest;
 
 import io.github.gabrielcoelho.quarkussocial.domain.model.Post;
 import io.github.gabrielcoelho.quarkussocial.domain.model.User;
+import io.github.gabrielcoelho.quarkussocial.domain.repository.FollowerRepository;
 import io.github.gabrielcoelho.quarkussocial.domain.repository.PostRepository;
 import io.github.gabrielcoelho.quarkussocial.domain.repository.UserRepository;
 import io.github.gabrielcoelho.quarkussocial.rest.dto.CreatePostRequest;
@@ -23,11 +24,13 @@ public class PostResource {
 
     private UserRepository userRepository;
     private PostRepository repository;
+    private FollowerRepository followerRepository;
 
     @Inject
-    public PostResource(UserRepository userRepository, PostRepository repository) {
+    public PostResource(UserRepository userRepository, PostRepository repository, FollowerRepository followerRepository) {
         this.userRepository = userRepository;
         this.repository = repository;
+        this.followerRepository = followerRepository;
     }
 
     @POST
@@ -48,10 +51,35 @@ public class PostResource {
     }
 
     @GET
-    public Response listPosts( @PathParam("userId") Long userId ) {
+    public Response listPosts(
+            @PathParam("userId") Long userId,
+            @HeaderParam("followerId") Long followerId ){
         User user = userRepository.findById(userId);
-        if(user == null) {
+        if(user == null){
             return Response.status(Response.Status.NOT_FOUND).build();
+        }
+
+        if(followerId == null) {
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity("You forgot the header followerId")
+                    .build();
+        }
+
+        User follower = userRepository.findById(followerId);
+
+        if(follower == null) {
+            return Response
+                    .status(Response.Status.BAD_REQUEST)
+                    .entity("Nonexistent followerId")
+                    .build();
+        }
+
+        boolean follows = followerRepository.follows(follower, user);
+        if(!follows) {
+            return Response.status(Response.Status.FORBIDDEN)
+                    .entity("You can't see these posts")
+                    .build();
         }
 
         var query = repository.find(
