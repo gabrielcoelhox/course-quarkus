@@ -11,4 +11,10 @@ CREATE TABLE POSTS (
     post_text varchar(150) not null,
     dateTime timestamp not null,
     user_id bigint not null references USERS(id)
-)
+);
+
+CREATE TABLE FOLLOWERS (
+    id bigserial not null primary key,
+ 	user_id bigint not null references USERS(id),
+ 	follower_id bigint not null references USERS(id)
+);
